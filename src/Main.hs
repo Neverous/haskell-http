@@ -1,11 +1,55 @@
 module Main where
 
-import Data.Maybe
-import Control.Monad
-import System.Console.GetOpt
-import System.Environment
-import System.Exit
-import System.IO
+import Config (
+    Config,
+    load_configuration
+    )
+
+import Control.Monad (
+    when
+    )
+
+import Data.Map (
+    fromList
+    )
+
+import Network.Socket (
+    withSocketsDo
+    )
+import System.Console.GetOpt (
+    ArgDescr (
+        NoArg,
+        ReqArg
+        ),
+    ArgOrder (
+        Permute
+        ),
+    OptDescr,
+    OptDescr (
+        Option
+        ),
+    getOpt,
+    usageInfo
+    )
+
+import System.Environment (
+    getArgs,
+    getProgName
+    )
+
+import System.Exit (
+    ExitCode (
+        ExitSuccess,
+        ExitFailure
+        ),
+    exitWith
+    )
+
+import System.IO (
+    hPutStrLn,
+    stderr
+    )
+
 
 data Options =
     Options {
@@ -19,6 +63,17 @@ default_options = Options {
     verbose     = False,
     config_file = "config.ini"
 }
+
+default_config :: Config
+default_config = fromList [
+        ("global", fromList [
+            ("server_string", "hhttp 0.1"),
+            ("root_path", "/srv/www/"),
+            ("workers_count", "1"),
+            ("verbose", "0"),
+            ("config_file", "config.ini")
+        ])
+    ]
 
 options :: [OptDescr (Options -> IO Options)]
 options = [
@@ -59,6 +114,11 @@ parse_cmdline argv = case getOpt Permute options argv of
         exitWith (ExitFailure 1)
 
 main :: IO ()
-main = do
+main = withSocketsDo $ do
     options <- getArgs >>= parse_cmdline
-    putStrLn $ show options
+    config <- load_configuration (config_file options) default_config
+    -- debug config "Loaded configuration"
+    -- server <- new_server config
+    -- run_server server
+    putStrLn $ show config
+    return ()
