@@ -2,7 +2,7 @@ module Main where
 
 import Config (
     Config,
-    load_configuration
+    parse_config
     )
 
 import Control.Monad (
@@ -113,10 +113,24 @@ parse_cmdline argv = case getOpt Permute options argv of
         hPutStrLn stderr (concat errs ++ usageInfo program options)
         exitWith (ExitFailure 1)
 
+load_configuration :: String -> Config -> IO Config
+load_configuration config_file config = do
+    input <- readFile config_file
+    case parse_config input config of
+        -- sucessfully parsed config
+        Right config -> return config
+        -- errors
+        Left err -> do
+            hPutStrLn stderr (  "Couldn't load configuration file!\n" ++
+                                err ++
+                                "\n")
+            exitWith (ExitFailure 3)
+
 main :: IO ()
 main = withSocketsDo $ do
-    options <- getArgs >>= parse_cmdline
-    config <- load_configuration (config_file options) default_config
+    args    <- getArgs
+    options <- parse_cmdline args
+    config  <- load_configuration (config_file options) default_config
     -- debug config "Loaded configuration"
     -- server <- new_server config
     -- run_server server
