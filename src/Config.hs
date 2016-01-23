@@ -1,20 +1,20 @@
 module Config where
 
 import Data.Map (
-    fromList,
     Map,
+    fromList,
     union,
-    unionWith
+    unionWith,
     )
 
 import Parser (
+    Parser,
     consume,
     consume_many_if,
     consume_many_of,
     eof,
-    Parser,
     repeat,
-    runParser
+    runParser,
     )
 
 whitespaces :: String

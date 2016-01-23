@@ -4,7 +4,7 @@ module Parser where
 
 import Control.Monad (
     ap,
-    liftM
+    liftM,
     )
 
 import Control.Monad.Except (
@@ -14,16 +14,16 @@ import Control.Monad.Except (
         ),
     MonadError,
     runExceptT,
-    throwError
+    throwError,
     )
 
 import Control.Monad.State (
-    get,
     MonadState,
+    State,
+    get,
     put,
     runState,
-    State,
-    state
+    state,
     )
 
 newtype Parser a = Parser {
@@ -50,7 +50,7 @@ eof = do
     s <- get
     case s of
         []  -> return ()
-        x:_   -> throwError ("Unexpected '" ++ [x] ++ "'")
+        x:_ -> throwError ("Unexpected '" ++ [x] ++ "'")
 
 consume_if :: (Char -> Bool) -> Parser Char
 consume_if pred = do

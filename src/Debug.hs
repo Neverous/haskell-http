@@ -1,12 +1,12 @@
 module Debug where
 
 import Data.Time (
-    getZonedTime
+    getZonedTime,
     )
 
 import System.IO (
     putStr,
-    putStrLn
+    putStrLn,
     )
 
 level_to_string :: Int -> String

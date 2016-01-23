@@ -2,16 +2,16 @@ module Main where
 
 import Config (
     Config,
-    parse_config
+    parse_config,
     )
 
 import Control.Monad (
-    when
+    when,
     )
 
 import Data.Map (
+    (!),
     fromList,
-    (!)
     )
 
 import Debug (
@@ -22,20 +22,20 @@ import Debug (
     )
 
 import Network.Socket (
-    withSocketsDo
+    withSocketsDo,
     )
 
 import Options (
     Options (
         Options,
-        verbosity,
-        config_file
+        config_file,
+        verbosity
         )
     )
 
 import Server (
     new_server,
-    run_server
+    run_server,
     )
 
 import System.Console.GetOpt (
@@ -51,12 +51,12 @@ import System.Console.GetOpt (
         Option
         ),
     getOpt,
-    usageInfo
+    usageInfo,
     )
 
 import System.Environment (
     getArgs,
-    getProgName
+    getProgName,
     )
 
 import System.Exit (
@@ -64,12 +64,12 @@ import System.Exit (
         ExitSuccess,
         ExitFailure
         ),
-    exitWith
+    exitWith,
     )
 
 import System.IO (
     hPutStrLn,
-    stderr
+    stderr,
     )
 
 
@@ -151,7 +151,7 @@ main = withSocketsDo $ do
     config  <- load_configuration (config_file options) default_config
     options <- return options { verbosity = choose_verbosity_level (verbosity options) (config ! "global" ! "verbosity") }
     notice (verbosity options) "Loaded configuration"
-    server <- new_server options config
+    server <- new_server (verbosity options) config
     run_server server
     info (verbosity options) "Done!"
     return ()
