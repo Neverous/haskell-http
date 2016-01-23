@@ -10,12 +10,34 @@ import Control.Monad (
     )
 
 import Data.Map (
-    fromList
+    fromList,
+    (!)
+    )
+
+import Debug (
+    choose_verbosity_level,
+    info,
+    notice,
+    string_to_level,
     )
 
 import Network.Socket (
     withSocketsDo
     )
+
+import Options (
+    Options (
+        Options,
+        verbosity,
+        config_file
+        )
+    )
+
+import Server (
+    new_server,
+    run_server
+    )
+
 import System.Console.GetOpt (
     ArgDescr (
         NoArg,
@@ -51,26 +73,22 @@ import System.IO (
     )
 
 
-data Options =
-    Options {
-        verbose     :: Bool,
-        config_file :: String
-    }
-    deriving Show
-
 default_options :: Options
 default_options = Options {
-    verbose     = False,
+    verbosity   = 0,
     config_file = "config.ini"
 }
 
 default_config :: Config
 default_config = fromList [
         ("global", fromList [
+            ("host", "0.0.0.0"),
+            ("port", "80"),
+            ("server_name", "hhttp.com"),
             ("server_string", "hhttp 0.1"),
             ("root_path", "/srv/www/"),
             ("workers_count", "1"),
-            ("verbose", "0"),
+            ("verbosity", "0"),
             ("config_file", "config.ini")
         ])
     ]
@@ -84,9 +102,9 @@ options = [
                         exitWith ExitSuccess))
             "print this help message",
 
-    Option  ['v']   ["verbose"]
-            (NoArg (\opt -> return opt { verbose = True }))
-            "server verbose output",
+    Option  ['v']   ["verbosity"]
+            (ReqArg (\arg opt -> return opt { verbosity = string_to_level arg }) "LEVEL")
+            "set verbosity to LEVEL[debug, notice, info, warning, error, silent]",
 
     Option  ['c']   ["config"]
             (ReqArg (\arg opt -> return opt { config_file = arg }) "FILE")
@@ -131,8 +149,9 @@ main = withSocketsDo $ do
     args    <- getArgs
     options <- parse_cmdline args
     config  <- load_configuration (config_file options) default_config
-    -- debug config "Loaded configuration"
-    -- server <- new_server config
-    -- run_server server
-    putStrLn $ show config
+    options <- return options { verbosity = choose_verbosity_level (verbosity options) (config ! "global" ! "verbosity") }
+    notice (verbosity options) "Loaded configuration"
+    server <- new_server options config
+    run_server server
+    info (verbosity options) "Done!"
     return ()
