@@ -1,30 +1,16 @@
 module Config where
 
-import Data.Map (
-    Map,
-    fromList,
-    union,
-    unionWith,
-    )
-
-import Parser (
-    Parser,
-    consume,
-    consume_many_if,
-    consume_many_of,
-    eof,
-    repeat,
-    runParser,
-    )
-
-whitespaces :: String
-whitespaces = " \t\n\r"
+import Data.Map
+import Parser
 
 type Section = Map String String
 type Config = Map String (Section)
 
-skip_whitespace :: Parser ()
-skip_whitespace = do
+whitespaces :: String
+whitespaces = " \t\n\r"
+
+skip_whitespaces :: Parser ()
+skip_whitespaces = do
     consume_many_of whitespaces
     return ()
 
@@ -33,7 +19,7 @@ skip_comments = do
     Parser.repeat comment_parser
     return ()
     where comment_parser = do
-            skip_whitespace
+            skip_whitespaces
             consume ';'
             consume_many_if (/= '\n')
             return ()
@@ -41,22 +27,22 @@ skip_comments = do
 option_parser :: Parser (String, String)
 option_parser = do
     skip_comments
-    skip_whitespace
+    skip_whitespaces
     key <- consume_many_if (`notElem` (whitespaces ++ "=[]"))
-    skip_whitespace
+    skip_whitespaces
     consume '='
-    skip_whitespace
+    skip_whitespaces
     value <- consume_many_if (/= '\n')
     return (key, value)
 
 section_parser :: Parser (String, Section)
 section_parser = do
     skip_comments
-    skip_whitespace
+    skip_whitespaces
     consume '['
-    skip_whitespace
+    skip_whitespaces
     name <- consume_many_if (/= ']')
-    skip_whitespace
+    skip_whitespaces
     consume ']'
     options <- Parser.repeat option_parser
     return (name, fromList options)

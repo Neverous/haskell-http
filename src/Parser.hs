@@ -1,50 +1,16 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
-
 module Parser where
 
-import Control.Monad (
-    ap,
-    liftM,
-    )
+import Control.Monad.Except
+import Control.Monad.State
 
-import Control.Monad.Except (
-    catchError,
-    ExceptT (
-        ExceptT
-        ),
-    MonadError,
-    runExceptT,
-    throwError,
-    )
-
-import Control.Monad.State (
-    MonadState,
-    State,
-    get,
-    put,
-    runState,
-    state,
-    )
-
-newtype Parser a = Parser {
-    execParser :: ExceptT String (State String) a
-    } deriving (Monad, MonadError String, MonadState String)
-
-instance Functor Parser where
-    fmap = liftM
-
-instance Applicative Parser where
-    pure    = return
-    (<*>)   = ap
+type Parser = ExceptT String (State String)
 
 runParser :: Parser a -> String -> Either String (a, String)
-runParser parser str = case (runState . runExceptT . execParser) parser str of
+runParser parser str = case (runState . runExceptT) parser str of
     (Left err, _)   -> Left err
     (Right res, s)  -> Right (res, s)
 
-
 -- Helpers
-
 eof :: Parser ()
 eof = do
     s <- get
@@ -64,6 +30,14 @@ consume_if pred = do
 
 consume :: Char -> Parser Char
 consume x = consume_if (== x)
+
+consume_s :: String -> Parser String
+consume_s (x:xs) = do
+    y   <- consume x
+    ys  <- consume_s xs
+    return (y:ys)
+
+consume_s [] = return []
 
 consume_of :: [Char] -> Parser Char
 consume_of xs = consume_if (`elem` xs)

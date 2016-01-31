@@ -1,77 +1,16 @@
 module Main where
 
-import Config (
-    Config,
-    parse_config,
-    )
-
-import Control.Monad (
-    when,
-    )
-
-import Data.Map (
-    (!),
-    fromList,
-    )
-
-import Debug (
-    choose_verbosity_level,
-    info,
-    notice,
-    string_to_level,
-    )
-
-import Network.Socket (
-    withSocketsDo,
-    )
-
-import Options (
-    Options (
-        Options,
-        config_file,
-        verbosity
-        )
-    )
-
-import Server (
-    new_server,
-    run_server,
-    )
-
-import System.Console.GetOpt (
-    ArgDescr (
-        NoArg,
-        ReqArg
-        ),
-    ArgOrder (
-        Permute
-        ),
-    OptDescr,
-    OptDescr (
-        Option
-        ),
-    getOpt,
-    usageInfo,
-    )
-
-import System.Environment (
-    getArgs,
-    getProgName,
-    )
-
-import System.Exit (
-    ExitCode (
-        ExitSuccess,
-        ExitFailure
-        ),
-    exitWith,
-    )
-
-import System.IO (
-    hPutStrLn,
-    stderr,
-    )
-
+import Config
+import Control.Monad.Trans
+import Data.Map
+import Debug
+import Network.Socket
+import Options
+import Server
+import System.Console.GetOpt
+import System.Environment
+import System.Exit
+import System.IO
 
 default_options :: Options
 default_options = Options {
@@ -103,7 +42,8 @@ options = [
             "print this help message",
 
     Option  ['v']   ["verbosity"]
-            (ReqArg (\arg opt -> return opt { verbosity = string_to_level arg }) "LEVEL")
+            (ReqArg (\arg opt -> return opt { verbosity = string_to_level arg })
+                "LEVEL")
             "set verbosity to LEVEL[debug, notice, info, warning, error, silent]",
 
     Option  ['c']   ["config"]
@@ -115,7 +55,7 @@ parse_cmdline :: [String] -> IO Options
 parse_cmdline argv = case getOpt Permute options argv of
     -- successfully parsed options
     (actions, [], [])  -> do
-        opts <- foldl (>>=) (return default_options) actions
+        opts <- Prelude.foldl (>>=) (return default_options) actions
         return opts
 
     -- some arguments left
@@ -149,9 +89,13 @@ main = withSocketsDo $ do
     args    <- getArgs
     options <- parse_cmdline args
     config  <- load_configuration (config_file options) default_config
-    options <- return options { verbosity = choose_verbosity_level (verbosity options) (config ! "global" ! "verbosity") }
-    notice (verbosity options) "Loaded configuration"
-    server <- new_server (verbosity options) config
-    run_server server
-    info (verbosity options) "Done!"
-    return ()
+    verbosity <- return $
+        let {level = verbosity options} in
+            if level > 0 then level
+            else read (config ! "global" ! "verbosity") :: Int
+
+    runDebugIO verbosity $ do
+        notice "Loaded configuration"
+        runServer config
+        info "Done!"
+        return ()

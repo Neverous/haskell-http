@@ -6,4 +6,3 @@ data Options =
         config_file :: String
     }
     deriving Show
-
